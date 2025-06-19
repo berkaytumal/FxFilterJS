@@ -1,6 +1,9 @@
 # FxFilterJS
-
 A powerful JavaScript library that brings advanced visual effects to the web using SVG filters and canvas-based textures. Create stunning visual effects like liquid glass, frosted glass, and customizable noise patterns with simple CSS declarations. Easily extensible with custom effects using the FxFilter.add() API.
+
+[View Demo](https://html-preview.github.io/?url=https://github.com/berkaytumal/FxFilterJS/blob/main/index.html)
+
+![Example](example.png)
 
 ## Usage
 
