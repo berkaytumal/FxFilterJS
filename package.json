@@ -1,0 +1,15 @@
+{
+  "name": "liquid-glass-houdini",
+  "version": "1.0.0",
+  "description": "CSS Houdini worklet for iOS-style liquid glass effects",
+  "main": "index.html",
+"scripts": {
+    "dev": "npx live-server",
+    "start": "npx live-server"
+},
+  "keywords": ["css-houdini", "liquid-glass", "ios", "visual-effects"],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {}
+}
