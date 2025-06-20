@@ -46,9 +46,6 @@ After loading, apply effects using CSS custom properties:
     --fx-filter: blur(2px) liquid-glass(1.5, 8, 0.8) saturate(1.3);
 }
 
-.iridescent {
-    --fx-filter: chromatic-aberration(1.0, 0.7) blur(1px);
-}
 ```
 
 ## Available Effects
@@ -93,26 +90,6 @@ Creates smooth, distorted liquid glass effects inspired by modern iOS design wit
 
 /* Liquid glass with chromatic aberration */
 --fx-filter: blur(2px) liquid-glass(1.5, 8, 0.8) saturate(1.3);
-```
-
-### Chromatic Aberration Effect
-Creates rainbow color separation at edges, simulating light dispersion through prisms or optical glass.
-
-```css
---fx-filter: chromatic-aberration(intensity, edge_falloff);
-```
-
-**Parameters:**
-- `intensity` (0-2): Controls the strength of color separation
-- `edge_falloff` (optional, 0-1): Controls how far from edges the effect extends
-
-**Examples:**
-```css
-/* Subtle iridescent edges */
---fx-filter: chromatic-aberration(0.5, 0.8);
-
-/* Strong prismatic effect */
---fx-filter: chromatic-aberration(1.5, 0.6) blur(3px);
 ```
 
 ## API (Advanced)
@@ -193,23 +170,10 @@ FxFilter.add("sepia", (element, amount = 1) => {
 }
 ```
 
-### Iridescent Effect
-```css
-.iridescent {
-    --fx-filter: chromatic-aberration(1.0, 0.7) blur(1px);
-    background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.15) 0%,
-        rgba(255, 255, 255, 0.05) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 15px;
-    padding: 20px;
-}
-```
-
 ### Combining Multiple Effects
 ```css
 .complex-effect {
-    --fx-filter: blur(5px) noise(0.5, 0.8, 0.2) chromatic-aberration(0.8, 0.8) liquid-glass(1, 6, 0.4);
+    --fx-filter: blur(5px) noise(0.5, 0.8, 0.2) liquid-glass(1, 6, 0.4);
 }
 ```
 
