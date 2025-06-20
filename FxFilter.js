@@ -318,201 +318,105 @@ FxFilter.add({
 FxFilter.add({
     name: "liquid-glass",
     callback: (element, refraction = 1, offset = 10) => {
-        class RefractionEditor {
-            imageData = null;
-            constructor(width, height) {
-                this.imageData = new ImageData(width, height);
-                this.width = width;
-                this.height = height;
-                //make all pixels solid with channel separation
-                for (let i = 0; i < this.imageData.data.length; i += 4) {
-                    const base = 127; // Empirically determined neutral value for sRGB color space
-                    this.imageData.data[i] = base;     // R - X displacement channel
-                    this.imageData.data[i + 1] = base; // G - unused channel
-                    this.imageData.data[i + 2] = base; // B - Y displacement channel
-                    this.imageData.data[i + 3] = 255; // A
-                }
-            }
-            static linearToSRGB(x) {
-                return x <= 0.0031308
-                    ? 12.92 * x
-                    : 1.055 * Math.pow(x, 1 / 2.4) - 0.055;
-            }
+        const width = element.offsetWidth;
+        const height = element.offsetHeight;
+        const refractionValue = parseFloat(refraction) / 2 || 0;
+        const offsetValue = (parseFloat(offset) || 0) / 2;
+        const borderRadius = parseFloat(window.getComputedStyle(element).borderRadius) || 0;
 
-            static sRGBToLinear(x) {
-                return x <= 0.04045
-                    ? x / 12.92
-                    : Math.pow((x + 0.055) / 1.055, 2.4);
-            }
+        // Create displacement map directly
+        const maxDimension = Math.max(width, height);
+        const imageData = new ImageData(maxDimension, maxDimension);
+        const data = imageData.data;
 
-            static fromLinearImageData(linearImageData) {
-                const { width, height, data } = linearImageData;
-                const output = new Uint8ClampedArray(data.length);
-
-                for (let i = 0; i < data.length; i += 4) {
-                    for (let j = 0; j < 3; j++) {
-                        const lin = data[i + j] / 255;
-                        output[i + j] = Math.round(this.linearToSRGB(lin) * 255);
-                    }
-                    output[i + 3] = data[i + 3]; // alpha
-                }
-
-                return new ImageData(output, width, height);
-            }
-
-            static toLinearImageData(srgbImageData) {
-                const { width, height, data } = srgbImageData;
-                const output = new Uint8ClampedArray(data.length);
-
-                for (let i = 0; i < data.length; i += 4) {
-                    for (let j = 0; j < 3; j++) {
-                        const s = data[i + j] / 255;
-                        output[i + j] = Math.round(this.sRGBToLinear(s) * 255);
-                    }
-                    output[i + 3] = data[i + 3]; // alpha
-                }
-
-                return new ImageData(output, width, height);
-            }
-            addTransformation(vx, vy, direction, dx, dy, dw, dh, easing = (x) => x) {
-                const data = this.imageData.data;
-
-                // Iterate through each pixel in the rectangle
-                for (let y = dy; y < dy + dh; y++) {
-                    for (let x = dx; x < dx + dw; x++) {
-                        // Skip if outside image bounds
-                        if (x < 0 || y < 0 || x >= this.imageData.width || y >= this.imageData.height) continue;
-
-                        // Calculate gradient segment based on direction
-                        let gradientSegment = 0;
-                        switch (direction.toLowerCase()) {
-                            case 'down':
-                                gradientSegment = (y - dy) / dh; // top to bottom
-                                break;
-                            case 'up':
-                            case 'top':
-                                gradientSegment = (dh - (y - dy)) / dh; // bottom to top
-                                break;
-                            case 'right':
-                                gradientSegment = (x - dx) / dw; // left to right
-                                break;
-                            case 'left':
-                                gradientSegment = (dw - (x - dx)) / dw; // right to left
-                                break;
-                            default:
-                                gradientSegment = (y - dy) / dh; // default to down
-                        }
-
-                        // Clamp gradient segment to 0-1 range
-                        gradientSegment = Math.max(0, Math.min(1, gradientSegment));
-
-                        // Calculate pixel index
-                        const pixelIndex = (y * this.imageData.width + x) * 4;
-
-                        // Get current R and B values (X and Y displacement channels)
-                        let r = data[pixelIndex];     // R channel for X displacement
-                        let b = data[pixelIndex + 2]; // B channel for Y displacement
-
-                        // Calculate vx and vy values using functions
-                        var vxValue = typeof vx === 'function' ? vx(x, y, dw, dh) : vx;
-                        var vyValue = typeof vy === 'function' ? vy(x, y, dw, dh) : vy;
-                        // vxValue -= vyValue * .125
-
-                        // Apply transformation to specific channels
-                        r += 127 * vxValue * easing(gradientSegment); // X displacement goes to R channel
-                        b += 127 * vyValue * easing(gradientSegment); // Y displacement goes to B channel
-
-                        // Clamp values to 0-255 range and update only the channels we're using
-                        this.imageData.data[pixelIndex] = Math.max(0, Math.min(255, Math.round(r)));     // R channel
-                        this.imageData.data[pixelIndex + 2] = Math.max(0, Math.min(255, Math.round(b))); // B channel
-                        // Leave G channel (index 1) and A channel (index 3) unchanged
-                    }
-                }
-            }
-
-            getImageData() {
-                return this.imageData;
-            }
-        }
-        // --- Glass Refraction SVG Filter ---
-        function calculateRefractionMap(refraction, width, height, radius) {
-            refraction /= 2;
-            const refractionEditor = new RefractionEditor(width, height);
-            console.log("refractionEditor", refraction);
-            var offset = height / 2
-            refractionEditor.addTransformation(0, 1 * refraction, 'top', 0, 0, width, offset, (x) => Math.pow(x, 1));
-            refractionEditor.addTransformation(0, -1 * refraction, 'bottom', 0, height - offset, width, offset, (x) => Math.pow(x, 1));
-            //now left and rigght
-            offset = width / 2;
-            refractionEditor.addTransformation(1 * refraction, 0, 'left', 0, 0, offset, height, (x) => Math.pow(x, 1));
-            refractionEditor.addTransformation(-1 * refraction, 0, 'right', width - offset, 0, offset, height, (x) => Math.pow(x, 1));
-
-
-            return refractionEditor.getImageData();
+        // Initialize with neutral gray (127 = no displacement)
+        for (let i = 0; i < data.length; i += 4) {
+            data[i] = 127;     // R - X displacement channel
+            data[i + 1] = 127; // G - unused channel
+            data[i + 2] = 127; // B - Y displacement channel
+            data[i + 3] = 255; // A
         }
 
-
-        function createGlassSVGFilter(el, refraction, offset) {
-            const width = el.offsetWidth;
-            const height = el.offsetHeight;
-            // Use a stable ID based on element and size to avoid regenerating filters unnecessarily
-            // calculateRefractionMap now returns ImageData, so we need to convert it to a blob URL
-            // Get refraction and offset from element's CSS variables
-            const refractionValue = parseFloat(refraction) || 0;
-            var offsetValue = parseFloat(offset) || 0;
-            var borderRadius = parseFloat(window.getComputedStyle(el).borderRadius) || 0;
-            const imageData = calculateRefractionMap(refractionValue, Math.max(width, height), Math.max(width, height), borderRadius);
-            // Convert ImageData to Blob with canvasto blob
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            //canvas color space is srgb
-
-
-            // Calculate centering offsets for the square imageData on the rectangular canvas
-            const maxDimension = Math.max(width, height);
-            const offsetX = (maxDimension - width) / 2;
-            const offsetY = (maxDimension - height) / 2;
-            
-            // Put the imageData centered on the canvas
-            ctx.putImageData(imageData, -offsetX, -offsetY);
-            ctx.fillStyle = "rgb(127, 127, 127)"; // Neutral gray for refraction
-            // Fill the canvas with neutral gray for proper mask
-            // Apply border radius if specified
-            const canvas2 = new OffscreenCanvas(width, height);
-            canvas2.width = width;
-            canvas2.height = height;
-            const ctx2 = canvas2.getContext('2d');
-            ctx2.fillStyle = "rgb(127, 127, 127)"; //
-            if (borderRadius > 0) {
-                ctx2.beginPath();
-                ctx2.roundRect(0, 0, width, height, borderRadius);
-                ctx2.clip();
+        // Apply top edge displacement
+        const topOffset = maxDimension / 2;
+        for (let y = 0; y < topOffset; y++) {
+            for (let x = 0; x < maxDimension; x++) {
+                const gradientSegment = (topOffset - y) / topOffset; // bottom to top
+                const pixelIndex = (y * maxDimension + x) * 4;
+                const vyValue = 1 * refractionValue;
+                data[pixelIndex + 2] = Math.max(0, Math.min(255, Math.round(127 + 127 * vyValue * Math.pow(gradientSegment, 1))));
             }
-            ctx2.fillRect(0, 0, width, height);
-
-            ctx.filter = `blur(${offsetValue}px)`
-            ctx.drawImage(canvas2, 0, 0, width, height);
-
-            const dataURL = canvas.toDataURL();
-            console.log('Generated glass filter data URL:', dataURL);
-
-            console.log("width", width, "height", height, "refraction", refractionValue, "offset", offsetValue, "borderRadius", borderRadius);
-            canvas.remove(); // Clean up canvas
-
-            const svgString =
-                // <filter id="${filterId}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
-                `
-        <feImage result="FEIMG" href="${dataURL}" color-interpolation-filters="sRGB"/>
-                <feDisplacementMap in="SourceGraphic" in2="FEIMG" scale="127" yChannelSelector="B" xChannelSelector="R" color-interpolation-filters="sRGB"/>
-
-    `;
-            return svgString
         }
-        return createGlassSVGFilter(element, refraction, offset);
 
+        // Apply bottom edge displacement
+        for (let y = maxDimension - topOffset; y < maxDimension; y++) {
+            for (let x = 0; x < maxDimension; x++) {
+                const gradientSegment = (y - (maxDimension - topOffset)) / topOffset; // top to bottom
+                const pixelIndex = (y * maxDimension + x) * 4;
+                const vyValue = -1 * refractionValue;
+                data[pixelIndex + 2] = Math.max(0, Math.min(255, Math.round(127 + 127 * vyValue * Math.pow(gradientSegment, 1))));
+            }
+        }
+
+        // Apply left edge displacement
+        const leftOffset = maxDimension / 2;
+        for (let y = 0; y < maxDimension; y++) {
+            for (let x = 0; x < leftOffset; x++) {
+                const gradientSegment = (leftOffset - x) / leftOffset; // right to left
+                const pixelIndex = (y * maxDimension + x) * 4;
+                const vxValue = 1 * refractionValue;
+                data[pixelIndex] = Math.max(0, Math.min(255, Math.round(127 + 127 * vxValue * Math.pow(gradientSegment, 1))));
+            }
+        }
+
+        // Apply right edge displacement
+        for (let y = 0; y < maxDimension; y++) {
+            for (let x = maxDimension - leftOffset; x < maxDimension; x++) {
+                const gradientSegment = (x - (maxDimension - leftOffset)) / leftOffset; // left to right
+                const pixelIndex = (y * maxDimension + x) * 4;
+                const vxValue = -1 * refractionValue;
+                data[pixelIndex] = Math.max(0, Math.min(255, Math.round(127 + 127 * vxValue * Math.pow(gradientSegment, 1))));
+            }
+        }
+
+        // Create canvas and apply blur
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        // Center the displacement map on the canvas
+        const offsetX = (maxDimension - width) / 2;
+        const offsetY = (maxDimension - height) / 2;
+        ctx.putImageData(imageData, -offsetX, -offsetY);
+
+        // Apply border radius mask if needed
+        if (borderRadius > 0) {
+            const maskCanvas = new OffscreenCanvas(width, height);
+            const maskCtx = maskCanvas.getContext('2d');
+            maskCtx.fillStyle = "rgb(127, 127, 127)";
+            maskCtx.beginPath();
+            // Make mask smaller based on blur amount to prevent edge transparency
+            const inset = offsetValue * 1; // Adjust multiplier as needed
+            maskCtx.roundRect(inset, inset, width - (inset * 2), height - (inset * 2), Math.max(0, borderRadius - inset));
+            maskCtx.clip();
+            maskCtx.fillRect(0, 0, width, height);
+
+            ctx.filter = `blur(${offsetValue}px)`;
+            ctx.drawImage(maskCanvas, 0, 0, width, height);
+        } else if (offsetValue > 0) {
+            ctx.filter = `blur(${offsetValue}px)`;
+            ctx.drawImage(canvas, 0, 0);
+        }
+
+        const dataURL = canvas.toDataURL();
+        canvas.remove();
+
+        return `
+            <feImage result="FEIMG" href="${dataURL}" color-interpolation-filters="sRGB"/>
+            <feDisplacementMap in="SourceGraphic" in2="FEIMG" scale="127" yChannelSelector="B" xChannelSelector="R" color-interpolation-filters="sRGB"/>
+        `;
     },
-    updatesOn: ['border-radius', 'width', 'height']  // Track border-radius changes since it affects the glass filter
+    updatesOn: ['border-radius', 'width', 'height']
 });
 FxFilter.init()
