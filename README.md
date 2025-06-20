@@ -3,7 +3,7 @@ A powerful JavaScript library that brings advanced visual effects to the web usi
 
 [View Demo](https://html-preview.github.io/?url=https://github.com/berkaytumal/FxFilterJS/blob/main/index.html)
 
-![Example](example.png)
+<img src="example.webp" alt="Example" style="max-width: 400px;">
 
 ## Usage
 
