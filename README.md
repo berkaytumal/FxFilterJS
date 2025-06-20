@@ -1,17 +1,35 @@
 # FxFilterJS
 A powerful JavaScript library that brings advanced visual effects to the web using SVG filters and canvas-based textures. Create stunning visual effects like liquid glass, frosted glass, chromatic aberration, and customizable noise patterns with simple CSS declarations. Easily extensible with custom effects using the FxFilter.add() API.
 
+```html
+<script src="https://berkaytumal.github.io/FxFilterJS/FxFilter.js"></script>
+```
+
 [View Demo](https://html-preview.github.io/?url=https://github.com/berkaytumal/FxFilterJS/blob/main/index.html)
 
 <img src="example.webp" alt="Example" style="max-width: 400px;">
 
 ## Usage
 
-Just include the script directly in your HTML:
+### CDN (Recommended)
+
+```html
+<!-- Latest version -->
+<script src="https://berkaytumal.github.io/FxFilterJS/FxFilter.js"></script>
+
+<!-- Specific version -->
+<script src="https://berkaytumal.github.io/FxFilterJS/v1.0.0/FxFilter.js"></script>
+```
+
+### Local Installation
+
+Download the script and include it directly in your HTML:
 
 ```html
 <script src="FxFilter.js"></script>
 ```
+
+### Basic Usage
 
 After loading, apply effects using CSS custom properties:
 
@@ -209,85 +227,6 @@ Contributions are most welcome! Feel free to submit issues and pull requests to 
 1. Fork the repository.
 2. Create a new branch for your feature or bugfix.
 3. Submit a pull request when your code is ready.
-
-## Release Management
-
-This project uses an automated release system that handles versioning, GitHub releases, and GitHub Pages hosting.
-
-### Making a Release
-
-Use the npm scripts to create releases:
-
-```bash
-# Patch release (1.0.0 → 1.0.1) - for bug fixes
-npm run release:patch
-
-# Minor release (1.0.0 → 1.1.0) - for new features
-npm run release:minor
-
-# Major release (1.0.0 → 2.0.0) - for breaking changes
-npm run release:major
-```
-
-Or use the release script directly:
-
-```bash
-# Direct usage
-node release.js patch
-node release.js minor
-node release.js major
-
-# Skip git status checks (use with caution)
-node release.js patch --skip-checks
-```
-
-### What the Release Script Does
-
-1. **Version Management**: Automatically increments version in `package.json` using semantic versioning
-2. **Git Operations**: Creates commits, tags, and pushes to repository
-3. **GitHub Releases**: Creates GitHub releases with `FxFilter.js` as downloadable asset
-4. **GitHub Pages**: Updates hosted versions with:
-   - Latest version at root: `https://[username].github.io/FxFilterJS/FxFilter.js`
-   - Versioned releases: `https://[username].github.io/FxFilterJS/v1.0.0/FxFilter.js`
-   - Version registry: `https://[username].github.io/FxFilterJS/versions.js`
-
-### CDN Usage
-
-After releases are published, you can use the CDN links:
-
-```html
-<!-- Always get the latest version -->
-<script src="https://[your-username].github.io/FxFilterJS/FxFilter.js"></script>
-
-<!-- Use a specific version -->
-<script src="https://[your-username].github.io/FxFilterJS/v1.2.0/FxFilter.js"></script>
-
-<!-- Load versions dynamically -->
-<script src="https://[your-username].github.io/FxFilterJS/versions.js"></script>
-<script>
-  // Load specific version
-  FxFilterVersions.loadVersion('1.2.0').then(FxFilter => {
-    console.log('FxFilter loaded:', FxFilter);
-  });
-  
-  // Get all available versions
-  console.log('Available versions:', FxFilterVersions.versions);
-</script>
-```
-
-### Prerequisites for Releases
-
-1. **GitHub CLI**: Install with `brew install gh` (for GitHub releases)
-2. **Clean Git State**: Commit all changes before releasing
-3. **GitHub Pages**: Enable GitHub Pages in repository settings (source: gh-pages branch)
-
-### First Time Setup
-
-1. Enable GitHub Pages in your repository settings
-2. Set source to "Deploy from a branch" → "gh-pages"
-3. Install GitHub CLI: `brew install gh`
-4. Authenticate: `gh auth login`
-5. Make your first release: `npm run release:patch`
 
 ## License
 
