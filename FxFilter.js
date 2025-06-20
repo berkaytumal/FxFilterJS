@@ -318,8 +318,8 @@ FxFilter.add({
 FxFilter.add({
     name: "liquid-glass",
     callback: (element, refraction = 1, offset = 10, chromatic = 0) => {
-        const width = element.offsetWidth;
-        const height = element.offsetHeight;
+        const width = Math.round(element.offsetWidth);
+        const height = Math.round(element.offsetHeight);
         const refractionValue = parseFloat(refraction) / 2 || 0;
         const offsetValue = (parseFloat(offset) || 0) / 2;
         const chromaticValue = parseFloat(chromatic) || 0;
