@@ -23,6 +23,14 @@ After loading, apply effects using CSS custom properties:
 .liquid-glass {
     --fx-filter: blur(2px) contrast(1.2) liquid-glass(2, 10) saturate(1.2);
 }
+
+.chromatic-glass {
+    --fx-filter: blur(2px) liquid-glass(1.5, 8, 0.8) saturate(1.3);
+}
+
+.iridescent {
+    --fx-filter: chromatic-aberration(1.0, 0.7) blur(1px);
+}
 ```
 
 ## Available Effects
