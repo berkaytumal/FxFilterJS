@@ -1,5 +1,5 @@
 # FxFilterJS
-A powerful JavaScript library that brings advanced visual effects to the web using SVG filters and canvas-based textures. Create stunning visual effects like liquid glass, frosted glass, and customizable noise patterns with simple CSS declarations. Easily extensible with custom effects using the FxFilter.add() API.
+A powerful JavaScript library that brings advanced visual effects to the web using SVG filters and canvas-based textures. Create stunning visual effects like liquid glass, frosted glass, chromatic aberration, and customizable noise patterns with simple CSS declarations. Easily extensible with custom effects using the FxFilter.add() API.
 
 [View Demo](https://html-preview.github.io/?url=https://github.com/berkaytumal/FxFilterJS/blob/main/index.html)
 
@@ -49,19 +49,44 @@ Creates customizable noise patterns for texture and grain effects.
 ```
 
 ### Liquid Glass Effect
-Creates smooth, distorted liquid glass effects inspired by modern iOS design.
+Creates smooth, distorted liquid glass effects inspired by modern iOS design with optional chromatic aberration.
 
 ```css
---fx-filter: liquid-glass(refraction, offset);
+--fx-filter: liquid-glass(refraction, offset, chromatic);
 ```
 
 **Parameters:**
 - `refraction`: Controls the liquid refraction intensity
 - `offset`: Controls the size of rounded edges
+- `chromatic` (optional): Controls chromatic aberration intensity (0-1)
 
-**Example:**
+**Examples:**
 ```css
+/* Basic liquid glass */
 --fx-filter: blur(2px) liquid-glass(2, 10) saturate(1.2);
+
+/* Liquid glass with chromatic aberration */
+--fx-filter: blur(2px) liquid-glass(1.5, 8, 0.8) saturate(1.3);
+```
+
+### Chromatic Aberration Effect
+Creates rainbow color separation at edges, simulating light dispersion through prisms or optical glass.
+
+```css
+--fx-filter: chromatic-aberration(intensity, edge_falloff);
+```
+
+**Parameters:**
+- `intensity` (0-2): Controls the strength of color separation
+- `edge_falloff` (optional, 0-1): Controls how far from edges the effect extends
+
+**Examples:**
+```css
+/* Subtle iridescent edges */
+--fx-filter: chromatic-aberration(0.5, 0.8);
+
+/* Strong prismatic effect */
+--fx-filter: chromatic-aberration(1.5, 0.6) blur(3px);
 ```
 
 ## API (Advanced)
@@ -127,10 +152,38 @@ FxFilter.add("sepia", (element, amount = 1) => {
 }
 ```
 
+### Chromatic Glass Element
+```css
+.chromatic-glass {
+    --fx-filter: blur(2px) liquid-glass(1.5, 8, 0.8) saturate(1.3);
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.2) 0%,
+        rgba(255, 255, 255, 0.05) 100%);
+    box-shadow: 
+        inset 0 2px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    padding: 20px;
+}
+```
+
+### Iridescent Effect
+```css
+.iridescent {
+    --fx-filter: chromatic-aberration(1.0, 0.7) blur(1px);
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.15) 0%,
+        rgba(255, 255, 255, 0.05) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 20px;
+}
+```
+
 ### Combining Multiple Effects
 ```css
 .complex-effect {
-    --fx-filter: blur(5px) noise(0.5, 0.8, 0.2) liquid-glass(3, 15) saturate(1.3);
+    --fx-filter: blur(5px) noise(0.5, 0.8, 0.2) chromatic-aberration(0.8, 0.8) liquid-glass(1, 6, 0.4);
 }
 ```
 
