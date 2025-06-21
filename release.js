@@ -40,14 +40,7 @@ function main() {
   cleanTmp();
   // Clone only the gh-pages branch
   run(`git clone --branch ${BRANCH} --single-branch ${REPO_URL} ${TMP_DIR}`, 'Clone gh-pages branch');
-  // Clean out old files (except .git)
-  for (const file of fs.readdirSync(TMP_DIR)) {
-    if (file !== '.git') {
-      const filePath = path.join(TMP_DIR, file);
-      fs.rmSync(filePath, { recursive: true, force: true });
-    }
-  }
-  // Copy new files
+  // Only update/add new files, do not delete previous versions
   copyRecursive(WWW_DIR, TMP_DIR);
   fs.copyFileSync(FXFILTER, path.join(TMP_DIR, FXFILTER));
   const versionDir = path.join(TMP_DIR, 'v' + VERSION);
@@ -60,7 +53,7 @@ function main() {
   run(`git push origin ${BRANCH}`, 'Push to gh-pages');
   process.chdir('..');
   cleanTmp();
-  console.log('✅ Deployed to GitHub Pages!');
+  console.log('✅ Deployed to GitHub Pages! Previous versions are preserved.');
 }
 
 main();
