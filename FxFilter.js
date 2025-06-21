@@ -61,26 +61,36 @@ class FxFilter {
             const storedState = this.elements.get(element);
 
             if (fxFilter) {
+                // Use cached parsedFilter if filter value hasn't changed
+                let parsedFilter;
+                if (storedState && storedState.filter === fxFilter && storedState.parsedFilter) {
+                    parsedFilter = storedState.parsedFilter;
+                } else {
+                    parsedFilter = this.parseFilterValue(fxFilter);
+                }
+
                 // Get current styles for updatesOn tracking
-                const currentStyles = this.getTrackedStyles(element, fxFilter);
+                const currentStyles = this.getTrackedStyles(element, fxFilter, parsedFilter);
 
                 // Element has --fx-filter
                 if (!storedState) {
                     // New element with fx-filter
-                    this.addFxContainer(element, fxFilter);
+                    this.addFxContainer(element, fxFilter, parsedFilter);
                     this.elements.set(element, {
                         filter: fxFilter,
                         hasContainer: true,
-                        trackedStyles: currentStyles
+                        trackedStyles: currentStyles,
+                        parsedFilter: parsedFilter
                     });
                 } else if (storedState.filter !== fxFilter || this.stylesChanged(storedState.trackedStyles, currentStyles)) {
                     // Filter value changed OR tracked styles changed - remove old and add new
                     this.removeFxContainer(element);
-                    this.addFxContainer(element, fxFilter);
+                    this.addFxContainer(element, fxFilter, parsedFilter);
                     this.elements.set(element, {
                         filter: fxFilter,
                         hasContainer: true,
-                        trackedStyles: currentStyles
+                        trackedStyles: currentStyles,
+                        parsedFilter: parsedFilter
                     });
                 }
                 // If storedState exists and filter is same and styles unchanged, do nothing
@@ -99,14 +109,14 @@ class FxFilter {
         return computed.getPropertyValue('--fx-filter').trim() || null;
     }
 
-    static addFxContainer(element, filterValue) {
+    static addFxContainer(element, filterValue, parsedFilter) {
         // Skip if element already has fx-container
         if (element.querySelector('.fx-container')) {
             return;
         }
 
-        // Parse filter value
-        const { orderedFilters, customFilters } = this.parseFilterValue(filterValue);
+        // Parse filter value (use cached if provided)
+        const { orderedFilters, customFilters } = parsedFilter || this.parseFilterValue(filterValue);
         console.log('Parsed filters:', { orderedFilters, customFilters });
 
         // Build the combined filter list
@@ -241,8 +251,8 @@ class FxFilter {
         };
     }
 
-    static getTrackedStyles(element, filterValue) {
-        const { customFilters } = this.parseFilterValue(filterValue);
+    static getTrackedStyles(element, filterValue, parsedFilter) {
+        const { customFilters } = parsedFilter || this.parseFilterValue(filterValue);
         const trackedStyles = new Map();
 
         customFilters.forEach(filter => {
@@ -323,7 +333,18 @@ FxFilter.add({
         const refractionValue = parseFloat(refraction) / 2 || 0;
         const offsetValue = (parseFloat(offset) || 0) / 2;
         const chromaticValue = parseFloat(chromatic) || 0;
-        const borderRadius = parseFloat(window.getComputedStyle(element).borderRadius) || 0;
+        const borderRadiusStr = window.getComputedStyle(element).borderRadius || '0';
+        let borderRadius = 0;
+
+        if (borderRadiusStr.includes('%')) {
+            // Handle percentage border radius
+            const percentage = parseFloat(borderRadiusStr);
+            const elementSize = Math.min(element.offsetWidth, element.offsetHeight);
+            borderRadius = (percentage / 100) * elementSize;
+        } else {
+            // Handle pixel values
+            borderRadius = parseFloat(borderRadiusStr);
+        }
 
         // Helper function to create displacement map with given refraction
         function createDisplacementMap(refractionMod) {
@@ -340,7 +361,7 @@ FxFilter.add({
             }
 
             // Apply top edge displacement
-            const topOffset = maxDimension / 2;
+            const topOffset = Math.floor(maxDimension / 2);
             for (let y = 0; y < topOffset; y++) {
                 for (let x = 0; x < maxDimension; x++) {
                     const gradientSegment = (topOffset - y) / topOffset; // bottom to top
@@ -361,7 +382,7 @@ FxFilter.add({
             }
 
             // Apply left edge displacement
-            const leftOffset = maxDimension / 2;
+            const leftOffset = Math.floor(maxDimension / 2);
             for (let y = 0; y < maxDimension; y++) {
                 for (let x = 0; x < leftOffset; x++) {
                     const gradientSegment = (leftOffset - x) / leftOffset; // right to left
@@ -394,8 +415,7 @@ FxFilter.add({
             // Center the displacement map on the canvas
             const offsetX = (maxDimension - width) / 2;
             const offsetY = (maxDimension - height) / 2;
-            ctx.putImageData(imageData, -offsetX, -offsetY);
-
+            ctx.putImageData(imageData, -Math.round(offsetX), -Math.round(offsetY)); console.log('Displacement map applied to canvas', width, height, canvas.toDataURL());
             // Apply border radius mask if needed
             if (borderRadius > 0) {
                 const maskCanvas = new OffscreenCanvas(width, height);
@@ -420,7 +440,7 @@ FxFilter.add({
             return dataURL;
         }
 
-        const maxDimension = Math.max(width, height);
+        const maxDimension = Math.ceil(Math.max(width, height));
 
         // If no chromatic aberration, use simple single displacement
         if (chromaticValue === 0) {
@@ -434,7 +454,7 @@ FxFilter.add({
         } else {
             // Create three displacement maps with different refraction values
             const chromaticOffset = chromaticValue * 0.25; // Scale the chromatic offset
-            
+
             const redImageData = createDisplacementMap(chromaticOffset);  // R: +0.25 * chromatic
             const greenImageData = createDisplacementMap(0);             // G: normal refraction
             const blueImageData = createDisplacementMap(-chromaticOffset); // B: -0.25 * chromatic
@@ -482,4 +502,20 @@ FxFilter.add({
     },
     updatesOn: ['border-radius', 'width', 'height']
 });
+
+// Register a simple color overlay filter: color-overlay(color, opacity)
+FxFilter.add({
+    name: 'color-overlay',
+    callback: (element, color = 'black', opacity = 0.5) => {
+        // Convert opacity to number if string
+        const alpha = typeof opacity === 'string' ? parseFloat(opacity) : opacity;
+        // SVG feFlood for color overlay
+        return `
+            <feFlood flood-color="${color}" flood-opacity="${alpha}" result="flood"/>
+            <feComposite in="flood" in2="SourceGraphic" operator="atop"/>
+        `;
+    },
+    updatesOn: [] // No dynamic style dependencies
+});
+
 FxFilter.init()
