@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS Filters Glassmorphism Demo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="background"></div>
+    <main class="demo-container">
+        <h1>FxFiltersJS Demos</h1>
+        <p class="subtitle">Showcasing custom CSS filters with SVG & Canvas using <strong>FxFiltersJS</strong></p>
+        <div class="filter-grid">
+            <!-- Row 1: noise() + blur() -->
+            <div class="glass-card" style="--fx-filter: blur(20px) noise(.5, 1, .1);">
+                <span>noise() + blur()<br><small>Raw</small></span>
+                <code>--fx-filter: blur(20px) noise(.5, 1, .1);</code>
+            </div>
+            <div class="glass-card" style="--fx-filter: blur(20px) noise(.5, 1, .1) color-overlay(black,.3);">
+                <span>noise() + blur()<br><small>Dark</small></span>
+                <code>--fx-filter: blur(20px) noise(.5, 1, .1) color-overlay(black,.3);</code>
+            </div>
+            <div class="glass-card" style="--fx-filter: blur(20px) noise(.5, 1, .1) color-overlay(white,.3);">
+                <span>noise() + blur()<br><small>Light</small></span>
+                <code>--fx-filter: blur(20px) noise(.5, 1, .1) color-overlay(white,.3);</code>
+            </div>
+            <!-- Row 2: liquid-glass() + blur() -->
+            <div class="glass-card" style="--fx-filter: blur(4px) liquid-glass(2, 10) saturate(1.25);">
+                <span>liquid-glass() + blur()<br><small>Raw</small></span>
+                <code>--fx-filter: blur(4px) liquid-glass(2, 10) saturate(1.25);</code>
+            </div>
+            <div class="glass-card"
+                style="--fx-filter: blur(4px) liquid-glass(2, 10) saturate(1.25) color-overlay(black,.3) contrast(1.25);">
+                <span>liquid-glass() + blur()<br><small>Dark</small></span>
+                <code>--fx-filter: blur(4px) liquid-glass(2, 10) saturate(1.25) color-overlay(black,.3) contrast(1.25);</code>
+            </div>
+            <div class="glass-card"
+                style="--fx-filter: blur(4px) liquid-glass(2, 10) saturate(1.25) color-overlay(white,.3) contrast(1.25);">
+                <span>liquid-glass() + blur()<br><small>Light</small></span>
+                <code>--fx-filter: blur(4px) liquid-glass(2, 10) saturate(1.25) color-overlay(white,.3) contrast(1.25);</code>
+            </div>
+            <!-- Row 3: liquid-glass() + blur() + chromatic aberration -->
+            <div class="glass-card" style="--fx-filter: blur(4px) liquid-glass(2, 10, 1) saturate(1.25);">
+                <span>liquid-glass() + blur()<br><small>Chroma Raw</small></span>
+                <code>--fx-filter: blur(4px) liquid-glass(2, 10, 1) saturate(1.25);</code>
+            </div>
+            <div class="glass-card"
+                style="--fx-filter: blur(4px) liquid-glass(2, 10, 1) saturate(1.25) color-overlay(black,.3) contrast(1.25);">
+                <span>liquid-glass() + blur()<br><small>Chroma Dark</small></span>
+                <code>--fx-filter: blur(4px) liquid-glass(2, 10, 1) saturate(1.25) color-overlay(black,.3) contrast(1.25);</code>
+            </div>
+            <div class="glass-card"
+                style="--fx-filter: blur(4px) liquid-glass(2, 10, 1) saturate(1.25) color-overlay(white,.3) contrast(1.25);">
+                <span>liquid-glass() + blur()<br><small>Chroma Light</small></span>
+                <code>--fx-filter: blur(4px) liquid-glass(2, 10, 1) saturate(1.25) color-overlay(white,.3) contrast(1.25);</code>
+            </div>
+        </div>
+        <div class="info-box">
+            <strong>About:</strong> Each card demonstrates a custom CSS filter effect powered by
+            <strong>FxFiltersJS</strong>.<br>
+            FxFiltersJS lets you write advanced filter chains using SVG and Canvas for next-level UI effects.
+        </div>
+    </main>
+    <script src="https://berkaytumal.github.io/FxFilterJS/FxFilter.js"></script>
+    <div class="photo-credit">
+        Photo by <a
+            href="https://unsplash.com/@madhu_shesharam?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash"
+            target="_blank" rel="noopener">Madhu Shesharam</a> on <a
+            href="https://unsplash.com/photos/photo-of-empty-road-between-rock-formations-KQZZCVyEWVk?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash"
+            target="_blank" rel="noopener">Unsplash</a>
+    </div>
+</body>
+
+</html>
