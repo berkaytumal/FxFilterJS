@@ -1,140 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FxFilter.js - Releases</title>
-    <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
-            margin: 40px; 
-            background: #fafafa;
-            color: #333;
-        }
-        .container { max-width: 800px; margin: 0 auto; }
-        .version { 
-            margin: 20px 0; 
-            padding: 20px; 
-            border: 1px solid #ddd; 
-            border-radius: 12px; 
-            background: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .latest { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-color: #667eea; 
-        }
-        .latest a { color: #fff; }
-        a { color: #007acc; text-decoration: none; font-weight: 500; }
-        a:hover { text-decoration: underline; }
-        pre { 
-            background: #f8f9fa; 
-            padding: 16px; 
-            border-radius: 8px; 
-            overflow-x: auto;
-            border-left: 4px solid #007acc;
-        }
-        h1 { 
-            color: #2c3e50;
-            margin-bottom: 10px;
-        }
-        h2 {
-            color: #34495e;
-            border-bottom: 2px solid #ecf0f1;
-            padding-bottom: 10px;
-        }
-        .badge {
-            background: #007acc;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 16px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .download-btn {
-            display: inline-block;
-            background: #28a745;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        .download-btn:hover {
-            background: #218838;
-            text-decoration: none;
-        }
-    </style>
+    <title>CSS Filters Glassmorphism Demo</title>
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-    <div class="container">
-        <h1>🎨 FxFilter.js Releases</h1>
-        <p>A powerful JavaScript library for advanced visual effects using SVG filters and canvas-based textures.</p>
-        
-        <h2>📦 Latest Version</h2>
-        <div class="version latest">
-            <h3>v1.0.0 <span class="badge">Latest</span></h3>
-            <p><strong>Released:</strong> June 20, 2025</p>
-            <p><strong>Download:</strong> <a href="./FxFilter.js" class="download-btn" download>📥 FxFilter.js</a></p>
-            <p><strong>CDN:</strong> <code>https://berkaytumal.github.io/FxFilterJS/FxFilter.js</code></p>
+    <div class="background"></div>
+    <main class="demo-container">
+        <h1>FxFiltersJS Demos</h1>
+        <p class="subtitle">Showcasing custom CSS filters with SVG & Canvas using <strong>FxFiltersJS</strong></p>
+        <div class="filter-grid">
+            <!-- Row 1: noise() + blur() -->
+            <div class="glass-card" style="--fx-filter: blur(20px) noise(.5, 1, .1);">
+                <span>noise() + blur()<br><small>Raw</small></span>
+                <code>--fx-filter: blur(20px) noise(.5, 1, .1);</code>
+            </div>
+            <div class="glass-card" style="--fx-filter: blur(20px) noise(.5, 1, .1) color-overlay(black,.3);">
+                <span>noise() + blur()<br><small>Dark</small></span>
+                <code>--fx-filter: blur(20px) noise(.5, 1, .1) color-overlay(black,.3);</code>
+            </div>
+            <div class="glass-card" style="--fx-filter: blur(20px) noise(.5, 1, .1) color-overlay(white,.3);">
+                <span>noise() + blur()<br><small>Light</small></span>
+                <code>--fx-filter: blur(20px) noise(.5, 1, .1) color-overlay(white,.3);</code>
+            </div>
+            <!-- Row 2: liquid-glass() + blur() -->
+            <div class="glass-card" style="--fx-filter: blur(4px) liquid-glass(2, 10) saturate(1.25);">
+                <span>liquid-glass() + blur()<br><small>Raw</small></span>
+                <code>--fx-filter: blur(4px) liquid-glass(2, 10) saturate(1.25);</code>
+            </div>
+            <div class="glass-card"
+                style="--fx-filter: blur(4px) liquid-glass(2, 10) saturate(1.25) color-overlay(black,.3) contrast(1.25);">
+                <span>liquid-glass() + blur()<br><small>Dark</small></span>
+                <code>--fx-filter: blur(4px) liquid-glass(2, 10) saturate(1.25) color-overlay(black,.3) contrast(1.25);</code>
+            </div>
+            <div class="glass-card"
+                style="--fx-filter: blur(4px) liquid-glass(2, 10) saturate(1.25) color-overlay(white,.3) contrast(1.25);">
+                <span>liquid-glass() + blur()<br><small>Light</small></span>
+                <code>--fx-filter: blur(4px) liquid-glass(2, 10) saturate(1.25) color-overlay(white,.3) contrast(1.25);</code>
+            </div>
+            <!-- Row 3: liquid-glass() + blur() + chromatic aberration -->
+            <div class="glass-card" style="--fx-filter: blur(4px) liquid-glass(2, 10, 1) saturate(1.25);">
+                <span>liquid-glass() + blur()<br><small>Chroma Raw</small></span>
+                <code>--fx-filter: blur(4px) liquid-glass(2, 10, 1) saturate(1.25);</code>
+            </div>
+            <div class="glass-card"
+                style="--fx-filter: blur(4px) liquid-glass(2, 10, 1) saturate(1.25) color-overlay(black,.3) contrast(1.25);">
+                <span>liquid-glass() + blur()<br><small>Chroma Dark</small></span>
+                <code>--fx-filter: blur(4px) liquid-glass(2, 10, 1) saturate(1.25) color-overlay(black,.3) contrast(1.25);</code>
+            </div>
+            <div class="glass-card"
+                style="--fx-filter: blur(4px) liquid-glass(2, 10, 1) saturate(1.25) color-overlay(white,.3) contrast(1.25);">
+                <span>liquid-glass() + blur()<br><small>Chroma Light</small></span>
+                <code>--fx-filter: blur(4px) liquid-glass(2, 10, 1) saturate(1.25) color-overlay(white,.3) contrast(1.25);</code>
+            </div>
         </div>
-
-        <h2>📋 All Versions</h2>
-        <div id="versions"></div>
-
-        <h2>🔧 Usage</h2>
-        <pre><code>// Load latest version
-&lt;script src="https://berkaytumal.github.io/FxFilterJS/FxFilter.js"&gt;&lt;/script&gt;
-
-// Load specific version
-&lt;script src="https://berkaytumal.github.io/FxFilterJS/v1.0.0/FxFilter.js"&gt;&lt;/script&gt;
-
-// Load dynamically
-&lt;script src="https://berkaytumal.github.io/FxFilterJS/versions.js"&gt;&lt;/script&gt;
-&lt;script&gt;
-    FxFilterVersions.loadVersion('1.0.0').then(FxFilter => {
-        // Use FxFilter here
-        console.log('FxFilter loaded!', FxFilter);
-    });
-&lt;/script&gt;</code></pre>
-
-        <h2>🚀 Quick Start</h2>
-        <pre><code>// Include the script
-&lt;script src="https://berkaytumal.github.io/FxFilterJS/FxFilter.js"&gt;&lt;/script&gt;
-
-// Apply effects with CSS
-&lt;style&gt;
-.element {
-    --fx-filter: blur(10px) noise(.25, 1, .1);
-}
-
-.liquid-glass {
-    --fx-filter: blur(2px) contrast(1.2) liquid-glass(2, 10) saturate(1.2);
-}
-&lt;/style&gt;</code></pre>
-
-        <p style="text-align: center; margin-top: 40px; color: #7f8c8d;">
-            <a href="https://github.com/berkaytumal/FxFilterJS" target="_blank">📚 Documentation</a> | 
-            <a href="https://github.com/berkaytumal/FxFilterJS" target="_blank">🐙 GitHub</a>
-        </p>
+        <div class="info-box">
+            <strong>About:</strong> Each card demonstrates a custom CSS filter effect powered by
+            <strong>FxFiltersJS</strong>.<br>
+            FxFiltersJS lets you write advanced filter chains using SVG and Canvas for next-level UI effects.
+        </div>
+    </main>
+    <script src="http://127.0.0.1:5501/FxFilter.js"></script>
+    <div class="photo-credit">
+        Photo by <a
+            href="https://unsplash.com/@madhu_shesharam?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash"
+            target="_blank" rel="noopener">Madhu Shesharam</a> on <a
+            href="https://unsplash.com/photos/photo-of-empty-road-between-rock-formations-KQZZCVyEWVk?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash"
+            target="_blank" rel="noopener">Unsplash</a>
     </div>
-
-    <script src="./versions.js"></script>
-    <script>
-        // Populate versions list
-        const versionsDiv = document.getElementById('versions');
-        FxFilterVersions.versions.forEach(version => {
-            const div = document.createElement('div');
-            div.className = 'version';
-            div.innerHTML = `
-                <h3>v${version.version}</h3>
-                <p><strong>Date:</strong> ${version.date}</p>
-                <p><strong>Download:</strong> <a href="${version.url}" class="download-btn" download>📥 FxFilter.js</a></p>
-                <p><strong>CDN:</strong> <code>https://berkaytumal.github.io/FxFilterJS/v${version.version}/FxFilter.js</code></p>
-            `;
-            versionsDiv.appendChild(div);
-        });
-    </script>
 </body>
+
 </html>
