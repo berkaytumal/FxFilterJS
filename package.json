@@ -7,9 +7,8 @@
     "dev": "npx live-server",
     "start": "npx live-server",
     "setup": "node setup.js",
-    "release:patch": "node release.js patch",
-    "release:minor": "node release.js minor",
-    "release:major": "node release.js major"
+    "build": "npx rollup -c",
+    "build:watch": "npx rollup -c -w"
   },
   "keywords": [
     "css-houdini",
@@ -17,7 +16,8 @@
     "ios",
     "visual-effects"
   ],
-  "author": "Your Name",
+  "author": "berkaytumal",
+  "type": "module",
   "license": "MIT",
   "devDependencies": {},
   "dependencies": {}

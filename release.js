@@ -13,7 +13,7 @@ const TMP_DIR = '.gh-pages-tmp';
 const FXFILTER = 'FxFilter.js';
 
 function run(cmd, desc) {
-  console.log('> ' + desc);
+  fxConsole.log('> ' + desc);
   execSync(cmd, { stdio: 'inherit' });
 }
 
@@ -53,7 +53,7 @@ function main() {
   run(`git push origin ${BRANCH}`, 'Push to gh-pages');
   process.chdir('..');
   cleanTmp();
-  console.log('✅ Deployed to GitHub Pages! Previous versions are preserved.');
+  fxConsole.log('✅ Deployed to GitHub Pages! Previous versions are preserved.');
 }
 
 main();

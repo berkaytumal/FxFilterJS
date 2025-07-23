@@ -1,1 +1,14 @@
-/.vscode
+# Node.js dependencies
+/node_modules/
+
+# Build output
+/dist/
+
+# IDE and editor folders
+/.vscode/
+.idea/
+*.swp
+
+# OS generated files
+.DS_Store
+Thumbs.db
