@@ -1,6 +1,6 @@
 export default {
     name: 'scale',
-    callback: (element, scale = 1, centerX = '50%', centerY = '50%') => {
+    callback: (element, scale = 1, edgeMode = 'mirror') => {
         const width = Math.round(element.offsetWidth);
         const height = Math.round(element.offsetHeight);
         scale = 1 / scale
@@ -51,13 +51,23 @@ export default {
 
         // Calculate diagonal size
         const diagonal = Math.sqrt(width * width + height * height);
-        const displacementScale = (1 - scale) * (diagonal / 2);
+        const displacementScale = (1 - scale) * (diagonal);
 
+        // Calculate rectangle size and position based on scale
+        const rectWidth = Math.round(width * (1 / scale));
+        const rectHeight = Math.round(height * (1 / scale));
+        const rectX = Math.round((width - rectWidth) / 2);
+        const rectY = Math.round((height - rectHeight) / 2);
+
+        const useEdge = edgeMode !== 'none';
+        // Limit the clip only for this filter by returning only the clipped result
         return `
-            <feImage result="FEIMG" href="${dataURL}" color-interpolation-filters="sRGB"/>
-            <feDisplacementMap in="SourceGraphic" in2="FEIMG" scale="${displacementScale}" yChannelSelector="B" xChannelSelector="R" color-interpolation-filters="sRGB"/>
-            `;
-
+        <feImage result="FEIMG" href="${dataURL}" color-interpolation-filters="sRGB"/>
+        <feDisplacementMap in="SourceGraphic" in2="FEIMG" result="map" scale="${displacementScale}" yChannelSelector="B" xChannelSelector="R" color-interpolation-filters="sRGB"/>
+        <feImage href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='${width}' height='${height}'><rect x='${rectX}' y='${rectY}' width='${rectWidth}' height='${rectHeight}' fill='white'/></svg>" result="RECTMASK"/>
+        <feComposite in="map" in2="RECTMASK" operator="in" result="CLIPPED"/>
+        <feComposite in="CLIPPED" in2="SourceAlpha" operator="in" result="final"/>
+        `;
     },
     updatesOn: ['width', 'height']
 }
