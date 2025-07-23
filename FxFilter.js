@@ -68,41 +68,38 @@ class FxFilter {
             const storedState = this.elements.get(element);
 
             if (fxFilter) {
-                // Use cached parsedFilter if filter value hasn't changed
                 let parsedFilter;
                 if (storedState && storedState.filter === fxFilter && storedState.parsedFilter) {
                     parsedFilter = storedState.parsedFilter;
                 } else {
                     parsedFilter = this.parseFilterValue(fxFilter);
                 }
-
-                // Get current styles for updatesOn tracking
                 const currentStyles = this.getTrackedStyles(element, fxFilter, parsedFilter);
 
-                // Element has --fx-filter
                 if (!storedState) {
-                    // New element with fx-filter
-                    this.addFxContainer(element, fxFilter, parsedFilter);
+                    // New element: create container and persistent filterId
+                    const filterId = `fx-${Math.random().toString(36).substr(2, 8)}`;
+                    this.addFxContainer(element, fxFilter, parsedFilter, filterId);
                     this.elements.set(element, {
                         filter: fxFilter,
                         hasContainer: true,
                         trackedStyles: currentStyles,
-                        parsedFilter: parsedFilter
+                        parsedFilter: parsedFilter,
+                        filterId
                     });
                 } else if (storedState.filter !== fxFilter || this.stylesChanged(storedState.trackedStyles, currentStyles)) {
-                    // Filter value changed OR tracked styles changed - remove old and add new
-                    this.removeFxContainer(element);
-                    this.addFxContainer(element, fxFilter, parsedFilter);
+                    // Only update SVG filter and CSS filter reference, not container
+                    this.updateFxFilter(element, fxFilter, parsedFilter, storedState.filterId);
                     this.elements.set(element, {
                         filter: fxFilter,
                         hasContainer: true,
                         trackedStyles: currentStyles,
-                        parsedFilter: parsedFilter
+                        parsedFilter: parsedFilter,
+                        filterId: storedState.filterId
                     });
                 }
                 // If storedState exists and filter is same and styles unchanged, do nothing
             } else {
-                // Element doesn't have --fx-filter
                 if (storedState && storedState.hasContainer) {
                     this.removeFxContainer(element);
                     this.elements.delete(element);
@@ -122,9 +119,14 @@ class FxFilter {
             return;
         }
 
-        // Parse filter value (use cached if provided)
         const { orderedFilters, customFilters } = parsedFilter || this.parseFilterValue(filterValue);
         fxConsole.log('Parsed filters:', { orderedFilters, customFilters });
+
+        // Use provided filterId for persistent reference
+        let filterId = arguments[3];
+        if (!filterId) {
+            filterId = `fx-${Math.random().toString(36).substr(2, 8)}`;
+        }
 
         // Build the combined filter list
         const filterParts = [];
@@ -134,43 +136,67 @@ class FxFilter {
             if (item.type === 'custom') {
                 const filter = item.filter;
                 const callback = this.filters.get(filter.name);
-
                 if (callback) {
-                    const filterId = `fx-${filter.name}-${Math.random().toString(36).substr(2, 6)}`;
                     const filterContent = callback(element, ...filter.params);
-
-                    // Add SVG filter definition
                     svgContent += `<filter id="${filterId}"
                      x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"
                      >${filterContent}</filter>`;
-
-                    // Add to filter parts
                     filterParts.push(`url(#${filterId})`);
                 }
             } else if (item.type === 'css') {
-                // Add CSS filter directly
                 filterParts.push(item.filter);
             }
         });
 
-        // Create the combined backdrop-filter value
         const backdropFilter = filterParts.join(' ');
 
         if (backdropFilter.trim()) {
-            // Create the structure
             element.innerHTML += `
                 <div class="fx-container" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; backdrop-filter: ${backdropFilter}; background: transparent; pointer-events: none; z-index: -1; overflow: hidden; border-radius: inherit;">
                     <svg style="position: absolute; width: 0; height: 0;">
-                        
+                        ${svgContent}
                     </svg>
                 </div>
             `;
-            element.querySelector('.fx-container svg').innerHTML = svgContent;
             fxConsole.log('Applied combined filter:', backdropFilter);
-            this.elements.set(element, { filter: filterValue, hasContainer: true });
         } else {
             fxConsole.log('No valid filters found');
         }
+    }
+
+    // Update SVG filter and CSS filter reference in-place
+    static updateFxFilter(element, filterValue, parsedFilter, filterId) {
+        const { orderedFilters, customFilters } = parsedFilter || this.parseFilterValue(filterValue);
+        fxConsole.log('Updating filter:', { orderedFilters, customFilters });
+        const filterParts = [];
+        let svgContent = '';
+        orderedFilters.forEach(item => {
+            if (item.type === 'custom') {
+                const filter = item.filter;
+                const callback = this.filters.get(filter.name);
+                if (callback) {
+                    const filterContent = callback(element, ...filter.params);
+                    svgContent += `<filter id="${filterId}"
+                     x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"
+                     >${filterContent}</filter>`;
+                    filterParts.push(`url(#${filterId})`);
+                }
+            } else if (item.type === 'css') {
+                filterParts.push(item.filter);
+            }
+        });
+        const backdropFilter = filterParts.join(' ');
+        // Update SVG content
+        const svg = element.querySelector('.fx-container svg');
+        if (svg) {
+            svg.innerHTML = svgContent;
+        }
+        // Update backdrop-filter style
+        const container = element.querySelector('.fx-container');
+        if (container) {
+            container.style.backdropFilter = backdropFilter;
+        }
+        fxConsole.log('Updated combined filter:', backdropFilter);
     }
 
     static createUnifiedSVG(customFilters) {
