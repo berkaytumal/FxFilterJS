@@ -5,6 +5,10 @@ class FxFilter {
     static filters = new Map(); // Registry for custom filters
     static filterOptions = new Map(); // Track filter options including updatesOn
     static running = false;
+    static observer = null; // MutationObserver instance
+    static resizeObserver = null; // ResizeObserver instance
+    static pendingElements = new Set(); // Elements waiting for proper dimensions
+    static styleCheckInterval = null; // Interval for checking style changes
 
     static add(options) {
         // if options is a list of filters, register each one
@@ -37,7 +41,7 @@ class FxFilter {
             try {
                 CSS.registerProperty({
                     name: '--fx-filter',
-                    syntax: '<filter-function># | none',
+                    syntax: '*',
                     inherits: false,
                     initialValue: ''
                 });
@@ -48,26 +52,260 @@ class FxFilter {
         }
 
         if (!this.running) {
-            fxConsole.log('🚀 Starting FxFilter animation loop');
+            fxConsole.log('🚀 Starting FxFilter with MutationObserver');
             this.running = true;
-            this.tick();
+            
+            // Wait for DOM to be ready before initial scan
+            this.waitForDOMReady(() => {
+                this.setupMutationObserver();
+                this.setupResizeObserver();
+                this.setupStyleWatcher(); // Add periodic style checking
+                this.scanElements(); // Initial scan for existing elements
+                fxConsole.log('🎯 Initial DOM scan completed');
+            });
         } else {
             fxConsole.log('⚡ FxFilter already running - skipping duplicate initialization');
         }
     }
 
-    static tick() {
-        this.scanElements();
-        requestAnimationFrame(() => this.tick());
+    static waitForDOMReady(callback) {
+        if (document.readyState === 'loading') {
+            // DOM is still loading, wait for DOMContentLoaded
+            document.addEventListener('DOMContentLoaded', () => {
+                // Give a small delay to ensure layout calculations are done
+                setTimeout(callback, 50);
+            });
+        } else {
+            // DOM is already ready, execute immediately
+            setTimeout(callback, 50);
+        }
+    }
+
+    static setupStyleWatcher() {
+        // Set up periodic checking for style changes on elements with updatesOn properties
+        // This is much more efficient than the old RAF approach since it only checks
+        // elements that actually have effects with style dependencies
+        this.styleCheckInterval = setInterval(() => {
+            this.checkStyleChanges();
+        }, 100); // Check every 100ms, much less frequent than 60fps RAF
+        
+        fxConsole.log('⏰ Style watcher setup complete (checking every 100ms)');
+    }
+
+    static checkStyleChanges() {
+        const elementsToCheck = [];
+        
+        // Only check elements that have effects with updatesOn properties
+        document.querySelectorAll('*:not(.fx-container):not(svg)').forEach(element => {
+            const storedState = this.elements.get(element);
+            if (storedState && storedState.filter && storedState.trackedStyles && storedState.trackedStyles.size > 0) {
+                elementsToCheck.push(element);
+            }
+        });
+        
+        if (elementsToCheck.length > 0) {
+            this.scanSpecificElements(elementsToCheck);
+        }
+    }
+
+    static setupResizeObserver() {
+        if ('ResizeObserver' in window) {
+            this.resizeObserver = new ResizeObserver((entries) => {
+                const elementsToCheck = new Set();
+                
+                entries.forEach(entry => {
+                    const element = entry.target;
+                    
+                    // Check if this element had zero dimensions before and now has dimensions
+                    if (this.pendingElements.has(element)) {
+                        const rect = element.getBoundingClientRect();
+                        const clientWidth = element.clientWidth || 0;
+                        const clientHeight = element.clientHeight || 0;
+                        const offsetWidth = element.offsetWidth || 0;
+                        const offsetHeight = element.offsetHeight || 0;
+                        
+                        // Element now has valid dimensions if all methods report positive values
+                        const hasValidDimensions = (
+                            rect.width > 0 && rect.height > 0 &&
+                            (clientWidth > 0 || offsetWidth > 0) &&
+                            (clientHeight > 0 || offsetHeight > 0)
+                        );
+                        
+                        if (hasValidDimensions) {
+                            fxConsole.log('📏 Element now has valid dimensions, processing:', element);
+                            this.pendingElements.delete(element);
+                            elementsToCheck.add(element);
+                        }
+                    }
+                    
+                    // Also check if this element needs updates based on size changes
+                    const storedState = this.elements.get(element);
+                    if (storedState && storedState.filter) {
+                        elementsToCheck.add(element);
+                    }
+                });
+                
+                if (elementsToCheck.size > 0) {
+                    this.scanSpecificElements(Array.from(elementsToCheck));
+                }
+            });
+            
+            fxConsole.log('📏 ResizeObserver setup complete');
+        } else {
+            fxConsole.log('⚠️ ResizeObserver not supported');
+        }
+    }
+
+    static setupMutationObserver() {
+        // Create MutationObserver to watch for DOM changes
+        this.observer = new MutationObserver((mutations) => {
+            this.handleMutations(mutations);
+        });
+
+        // Start observing document.body for changes
+        this.observer.observe(document.body, {
+            childList: true,    // Watch for added/removed nodes
+            subtree: true,      // Watch entire subtree 
+            attributes: true,   // Watch for attribute changes
+            attributeFilter: ['style', 'class'] // Only watch style and class changes
+        });
+
+        fxConsole.log('👁️ MutationObserver setup complete');
+    }
+
+    static handleMutations(mutations) {
+        const elementsToCheck = new Set();
+
+        mutations.forEach(mutation => {
+            if (mutation.type === 'childList') {
+                // Handle added nodes
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        // Add the element itself
+                        elementsToCheck.add(node);
+                        // Add all descendants that could have --fx-filter
+                        node.querySelectorAll('*:not(.fx-container):not(svg)').forEach(el => {
+                            elementsToCheck.add(el);
+                        });
+                    }
+                });
+
+                // Handle removed nodes - clean up if they had filters
+                mutation.removedNodes.forEach(node => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        this.cleanupRemovedElement(node);
+                        // Clean up descendants too
+                        node.querySelectorAll('*').forEach(el => {
+                            this.cleanupRemovedElement(el);
+                        });
+                    }
+                });
+            } else if (mutation.type === 'attributes') {
+                // Handle attribute changes (style, class) that might affect --fx-filter
+                if (mutation.target.nodeType === Node.ELEMENT_NODE) {
+                    elementsToCheck.add(mutation.target);
+                }
+            }
+        });
+
+        // Process all affected elements
+        if (elementsToCheck.size > 0) {
+            this.scanSpecificElements(Array.from(elementsToCheck));
+        }
+    }
+
+    static cleanupRemovedElement(element) {
+        const storedState = this.elements.get(element);
+        if (storedState && storedState.hasContainer) {
+            // Element was removed from DOM, clean up our tracking
+            this.elements.delete(element);
+            fxConsole.log('🧹 Cleaned up removed element from tracking');
+        }
+        
+        // Remove from pending and stop observing
+        this.pendingElements.delete(element);
+        if (this.resizeObserver) {
+            this.resizeObserver.unobserve(element);
+        }
+    }
+
+    static cleanup() {
+        // Clean up all observers and intervals
+        if (this.observer) {
+            this.observer.disconnect();
+            this.observer = null;
+        }
+        
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+            this.resizeObserver = null;
+        }
+        
+        if (this.styleCheckInterval) {
+            clearInterval(this.styleCheckInterval);
+            this.styleCheckInterval = null;
+        }
+        
+        this.running = false;
+        fxConsole.log('🧹 FxFilter cleanup completed');
     }
 
     static scanElements() {
-        // Scan only elements that could have --fx-filter (not our generated containers)
-        document.querySelectorAll('*:not(.fx-container):not(svg)').forEach(element => {
+        // Scan all elements in the document (used for initial scan)
+        const elements = document.querySelectorAll('*:not(.fx-container):not(svg)');
+        this.scanSpecificElements(Array.from(elements));
+    }
+
+    static scanSpecificElements(elements) {
+        // Scan only the provided elements for --fx-filter updates
+        elements.forEach(element => {
+            // Skip our generated containers and SVG elements
+            if (element.classList.contains('fx-container') || element.tagName.toLowerCase() === 'svg') {
+                return;
+            }
+
             const fxFilter = this.getFxFilterValue(element);
             const storedState = this.elements.get(element);
 
             if (fxFilter) {
+                // Check if element has zero dimensions using multiple methods
+                const rect = element.getBoundingClientRect();
+                const clientWidth = element.clientWidth || 0;
+                const clientHeight = element.clientHeight || 0;
+                const offsetWidth = element.offsetWidth || 0;
+                const offsetHeight = element.offsetHeight || 0;
+                
+                // Element has zero dimensions if any of these are true
+                const hasZeroDimensions = (
+                    rect.width <= 0 || rect.height <= 0 ||
+                    (clientWidth <= 0 && offsetWidth <= 0) ||
+                    (clientHeight <= 0 && offsetHeight <= 0)
+                );
+                
+                if (hasZeroDimensions) {
+                    // Element has zero dimensions, add to pending and observe for resize
+                    fxConsole.log('⏳ Element has zero dimensions, adding to pending list:', element, {
+                        rect: { width: rect.width, height: rect.height },
+                        client: { width: clientWidth, height: clientHeight },
+                        offset: { width: offsetWidth, height: offsetHeight }
+                    });
+                    this.pendingElements.add(element);
+                    
+                    // Start observing this element for size changes
+                    if (this.resizeObserver) {
+                        this.resizeObserver.observe(element);
+                    }
+                    
+                    // Skip processing for now
+                    return;
+                }
+                
+                // Remove from pending if it was there (element now has dimensions)
+                if (this.pendingElements.has(element)) {
+                    this.pendingElements.delete(element);
+                    fxConsole.log('✅ Element now has dimensions, processing:', element);
+                }
+
                 let parsedFilter;
                 if (storedState && storedState.filter === fxFilter && storedState.parsedFilter) {
                     parsedFilter = storedState.parsedFilter;
@@ -87,6 +325,11 @@ class FxFilter {
                         parsedFilter: parsedFilter,
                         filterId
                     });
+                    
+                    // Start observing for size changes if supported
+                    if (this.resizeObserver) {
+                        this.resizeObserver.observe(element);
+                    }
                 } else if (storedState.filter !== fxFilter || this.stylesChanged(storedState.trackedStyles, currentStyles)) {
                     // Only update SVG filter and CSS filter reference, not container
                     this.updateFxFilter(element, fxFilter, parsedFilter, storedState.filterId);
@@ -103,7 +346,15 @@ class FxFilter {
                 if (storedState && storedState.hasContainer) {
                     this.removeFxContainer(element);
                     this.elements.delete(element);
+                    
+                    // Stop observing this element
+                    if (this.resizeObserver) {
+                        this.resizeObserver.unobserve(element);
+                    }
                 }
+                
+                // Remove from pending if it was there
+                this.pendingElements.delete(element);
             }
         });
     }
@@ -132,16 +383,18 @@ class FxFilter {
         const filterParts = [];
         let svgContent = '';
 
+        let customFilterIndex = 0;
         orderedFilters.forEach(item => {
             if (item.type === 'custom') {
                 const filter = item.filter;
                 const callback = this.filters.get(filter.name);
                 if (callback) {
                     const filterContent = callback(element, ...filter.params);
-                    svgContent += `<filter id="${filterId}"
+                    const uniqueFilterId = `${filterId}-${customFilterIndex++}`;
+                    svgContent += `<filter id="${uniqueFilterId}"
                      x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"
                      >${filterContent}</filter>`;
-                    filterParts.push(`url(#${filterId})`);
+                    filterParts.push(`url(#${uniqueFilterId})`);
                 }
             } else if (item.type === 'css') {
                 filterParts.push(item.filter);
@@ -170,16 +423,18 @@ class FxFilter {
         fxConsole.log('Updating filter:', { orderedFilters, customFilters });
         const filterParts = [];
         let svgContent = '';
+        let customFilterIndex = 0;
         orderedFilters.forEach(item => {
             if (item.type === 'custom') {
                 const filter = item.filter;
                 const callback = this.filters.get(filter.name);
                 if (callback) {
                     const filterContent = callback(element, ...filter.params);
-                    svgContent += `<filter id="${filterId}"
+                    const uniqueFilterId = `${filterId}-${customFilterIndex++}`;
+                    svgContent += `<filter id="${uniqueFilterId}"
                      x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"
                      >${filterContent}</filter>`;
-                    filterParts.push(`url(#${filterId})`);
+                    filterParts.push(`url(#${uniqueFilterId})`);
                 }
             } else if (item.type === 'css') {
                 filterParts.push(item.filter);
@@ -319,3 +574,6 @@ class FxFilter {
 }
 FxFilter.add(builtInEffects);
 FxFilter.init()
+
+// Export the class for external access
+window.FxFilter = FxFilter;

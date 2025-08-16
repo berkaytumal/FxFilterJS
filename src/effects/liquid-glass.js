@@ -1,18 +1,27 @@
 export default {
     name: "liquid-glass",
     callback: (element, refraction = 1, offset = 10, chromatic = 0) => {
-        const width = Math.round(element.offsetWidth);
-        const height = Math.round(element.offsetHeight);
+        // Get element dimensions and validate them
+        const rawWidth = element.offsetWidth || element.clientWidth || 1;
+        const rawHeight = element.offsetHeight || element.clientHeight || 1;
+        const width = Math.max(1, Math.round(rawWidth));
+        const height = Math.max(1, Math.round(rawHeight));
+
+        // If dimensions are still invalid, return empty filter
+        if (width <= 1 || height <= 1) {
+            console.warn('🚨 Liquid-glass effect skipped: element has zero or invalid dimensions', { width, height, element });
+            return `<!-- Liquid-glass effect skipped: invalid dimensions -->`;
+        }
+
         const refractionValue = parseFloat(refraction) / 2 || 0;
         const offsetValue = (parseFloat(offset) || 0) / 2;
         const chromaticValue = parseFloat(chromatic) || 0;
         const borderRadiusStr = window.getComputedStyle(element).borderRadius || '0';
         let borderRadius = 0;
-
         if (borderRadiusStr.includes('%')) {
             // Handle percentage border radius
             const percentage = parseFloat(borderRadiusStr);
-            const elementSize = Math.min(element.offsetWidth, element.offsetHeight);
+            const elementSize = Math.min(width, height);
             borderRadius = (percentage / 100) * elementSize;
         } else {
             // Handle pixel values
@@ -90,6 +99,7 @@ export default {
             const offsetY = (maxDimension - height) / 2;
             ctx.putImageData(imageData, -Math.round(offsetX), -Math.round(offsetY));
             // Apply border radius mask if needed
+            borderRadius = Math.max(.1, borderRadius)
             if (borderRadius > 0) {
                 const maskCanvas = new OffscreenCanvas(width, height);
                 const maskCtx = maskCanvas.getContext('2d');
