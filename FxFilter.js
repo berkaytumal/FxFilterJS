@@ -41,7 +41,7 @@ class FxFilter {
             try {
                 CSS.registerProperty({
                     name: '--fx-filter',
-                    syntax: '<filter-function># | none',
+                    syntax: '*',
                     inherits: false,
                     initialValue: ''
                 });
@@ -383,16 +383,18 @@ class FxFilter {
         const filterParts = [];
         let svgContent = '';
 
+        let customFilterIndex = 0;
         orderedFilters.forEach(item => {
             if (item.type === 'custom') {
                 const filter = item.filter;
                 const callback = this.filters.get(filter.name);
                 if (callback) {
                     const filterContent = callback(element, ...filter.params);
-                    svgContent += `<filter id="${filterId}"
+                    const uniqueFilterId = `${filterId}-${customFilterIndex++}`;
+                    svgContent += `<filter id="${uniqueFilterId}"
                      x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"
                      >${filterContent}</filter>`;
-                    filterParts.push(`url(#${filterId})`);
+                    filterParts.push(`url(#${uniqueFilterId})`);
                 }
             } else if (item.type === 'css') {
                 filterParts.push(item.filter);
@@ -421,16 +423,18 @@ class FxFilter {
         fxConsole.log('Updating filter:', { orderedFilters, customFilters });
         const filterParts = [];
         let svgContent = '';
+        let customFilterIndex = 0;
         orderedFilters.forEach(item => {
             if (item.type === 'custom') {
                 const filter = item.filter;
                 const callback = this.filters.get(filter.name);
                 if (callback) {
                     const filterContent = callback(element, ...filter.params);
-                    svgContent += `<filter id="${filterId}"
+                    const uniqueFilterId = `${filterId}-${customFilterIndex++}`;
+                    svgContent += `<filter id="${uniqueFilterId}"
                      x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"
                      >${filterContent}</filter>`;
-                    filterParts.push(`url(#${filterId})`);
+                    filterParts.push(`url(#${uniqueFilterId})`);
                 }
             } else if (item.type === 'css') {
                 filterParts.push(item.filter);
