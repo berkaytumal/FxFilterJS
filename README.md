@@ -5,7 +5,7 @@ A powerful JavaScript library that brings advanced visual effects to the web usi
 <script src="https://berkaytumal.github.io/FxFilterJS/FxFilter.js"></script>
 ```
 
-[View Demo](https://berkaytumal.github.io/FxFilterJS/)
+[View Demo](https://html-preview.github.io/?url=https://github.com/berkaytumal/FxFilterJS/blob/main/index.html)
 
 <img src="example.webp" alt="Example" style="max-width: 400px;">
 
