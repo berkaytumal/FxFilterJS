@@ -63,8 +63,9 @@ export default {
             <rect width="100%" height="100%" fill="url(#g)"/>
             </svg>`
         )}" />
-        <feDisplacementMap in2="gradient" in="SourceGraphic" scale="${element.offsetWidth * (c_scaleX - 1)}" xChannelSelector="R" yChannelSelector="A" result="disp1"/>
-        <feDisplacementMap in2="gradient2" in="disp1" scale="${element.offsetHeight * (c_scaleY - 1)}" xChannelSelector="A" yChannelSelector="R"/>
+        <feDisplacementMap in2="gradient2" in="SourceGraphic" scale="${element.offsetHeight * (c_scaleY - 1)}" xChannelSelector="A" yChannelSelector="R" result="disp1" x="0" y="0" width="100%" height="100%"/>
+                <feDisplacementMap in2="gradient" in="disp1" scale="${element.offsetWidth * (c_scaleX - 1)}" xChannelSelector="R" yChannelSelector="A" result="disp1" x="0" y="0" width="100%" height="100%"/>
+
         `;
     },
     updatesOn: ['width', 'height']
