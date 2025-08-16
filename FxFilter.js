@@ -8,6 +8,7 @@ class FxFilter {
     static observer = null; // MutationObserver instance
     static resizeObserver = null; // ResizeObserver instance
     static pendingElements = new Set(); // Elements waiting for proper dimensions
+    static styleCheckInterval = null; // Interval for checking style changes
 
     static add(options) {
         // if options is a list of filters, register each one
@@ -58,6 +59,7 @@ class FxFilter {
             this.waitForDOMReady(() => {
                 this.setupMutationObserver();
                 this.setupResizeObserver();
+                this.setupStyleWatcher(); // Add periodic style checking
                 this.scanElements(); // Initial scan for existing elements
                 fxConsole.log('🎯 Initial DOM scan completed');
             });
@@ -76,6 +78,33 @@ class FxFilter {
         } else {
             // DOM is already ready, execute immediately
             setTimeout(callback, 50);
+        }
+    }
+
+    static setupStyleWatcher() {
+        // Set up periodic checking for style changes on elements with updatesOn properties
+        // This is much more efficient than the old RAF approach since it only checks
+        // elements that actually have effects with style dependencies
+        this.styleCheckInterval = setInterval(() => {
+            this.checkStyleChanges();
+        }, 100); // Check every 100ms, much less frequent than 60fps RAF
+        
+        fxConsole.log('⏰ Style watcher setup complete (checking every 100ms)');
+    }
+
+    static checkStyleChanges() {
+        const elementsToCheck = [];
+        
+        // Only check elements that have effects with updatesOn properties
+        document.querySelectorAll('*:not(.fx-container):not(svg)').forEach(element => {
+            const storedState = this.elements.get(element);
+            if (storedState && storedState.filter && storedState.trackedStyles && storedState.trackedStyles.size > 0) {
+                elementsToCheck.push(element);
+            }
+        });
+        
+        if (elementsToCheck.length > 0) {
+            this.scanSpecificElements(elementsToCheck);
         }
     }
 
@@ -198,6 +227,27 @@ class FxFilter {
         if (this.resizeObserver) {
             this.resizeObserver.unobserve(element);
         }
+    }
+
+    static cleanup() {
+        // Clean up all observers and intervals
+        if (this.observer) {
+            this.observer.disconnect();
+            this.observer = null;
+        }
+        
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+            this.resizeObserver = null;
+        }
+        
+        if (this.styleCheckInterval) {
+            clearInterval(this.styleCheckInterval);
+            this.styleCheckInterval = null;
+        }
+        
+        this.running = false;
+        fxConsole.log('🧹 FxFilter cleanup completed');
     }
 
     static scanElements() {
@@ -520,3 +570,6 @@ class FxFilter {
 }
 FxFilter.add(builtInEffects);
 FxFilter.init()
+
+// Export the class for external access
+window.FxFilter = FxFilter;
