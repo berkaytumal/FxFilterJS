@@ -1,10 +1,20 @@
 export default {
     name: "noise",
     callback: (element, saturation = 0, intensity = 1, opacity = .25) => {
+        // Get element dimensions and validate them
+        const width = Math.max(1, element.clientWidth || element.offsetWidth || 1);
+        const height = Math.max(1, element.clientHeight || element.offsetHeight || 1);
+        
+        // If dimensions are still invalid, return empty filter
+        if (width <= 1 || height <= 1) {
+            console.warn('🚨 Noise effect skipped: element has zero or invalid dimensions', { width, height, element });
+            return `<!-- Noise effect skipped: invalid dimensions -->`;
+        }
+        
         // Create canvas for noise texture
         const canvas = document.createElement('canvas');
-        canvas.width = element.clientWidth;
-        canvas.height = element.clientHeight;
+        canvas.width = width;
+        canvas.height = height;
         const ctx = canvas.getContext('2d');
 
         // Disable smoothing for sharper noise

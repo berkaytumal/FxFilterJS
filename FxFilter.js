@@ -6,6 +6,8 @@ class FxFilter {
     static filterOptions = new Map(); // Track filter options including updatesOn
     static running = false;
     static observer = null; // MutationObserver instance
+    static resizeObserver = null; // ResizeObserver instance
+    static pendingElements = new Set(); // Elements waiting for proper dimensions
 
     static add(options) {
         // if options is a list of filters, register each one
@@ -51,10 +53,77 @@ class FxFilter {
         if (!this.running) {
             fxConsole.log('🚀 Starting FxFilter with MutationObserver');
             this.running = true;
-            this.setupMutationObserver();
-            this.scanElements(); // Initial scan for existing elements
+            
+            // Wait for DOM to be ready before initial scan
+            this.waitForDOMReady(() => {
+                this.setupMutationObserver();
+                this.setupResizeObserver();
+                this.scanElements(); // Initial scan for existing elements
+                fxConsole.log('🎯 Initial DOM scan completed');
+            });
         } else {
             fxConsole.log('⚡ FxFilter already running - skipping duplicate initialization');
+        }
+    }
+
+    static waitForDOMReady(callback) {
+        if (document.readyState === 'loading') {
+            // DOM is still loading, wait for DOMContentLoaded
+            document.addEventListener('DOMContentLoaded', () => {
+                // Give a small delay to ensure layout calculations are done
+                setTimeout(callback, 50);
+            });
+        } else {
+            // DOM is already ready, execute immediately
+            setTimeout(callback, 50);
+        }
+    }
+
+    static setupResizeObserver() {
+        if ('ResizeObserver' in window) {
+            this.resizeObserver = new ResizeObserver((entries) => {
+                const elementsToCheck = new Set();
+                
+                entries.forEach(entry => {
+                    const element = entry.target;
+                    
+                    // Check if this element had zero dimensions before and now has dimensions
+                    if (this.pendingElements.has(element)) {
+                        const rect = element.getBoundingClientRect();
+                        const clientWidth = element.clientWidth || 0;
+                        const clientHeight = element.clientHeight || 0;
+                        const offsetWidth = element.offsetWidth || 0;
+                        const offsetHeight = element.offsetHeight || 0;
+                        
+                        // Element now has valid dimensions if all methods report positive values
+                        const hasValidDimensions = (
+                            rect.width > 0 && rect.height > 0 &&
+                            (clientWidth > 0 || offsetWidth > 0) &&
+                            (clientHeight > 0 || offsetHeight > 0)
+                        );
+                        
+                        if (hasValidDimensions) {
+                            fxConsole.log('📏 Element now has valid dimensions, processing:', element);
+                            this.pendingElements.delete(element);
+                            elementsToCheck.add(element);
+                        }
+                    }
+                    
+                    // Also check if this element needs updates based on size changes
+                    const storedState = this.elements.get(element);
+                    if (storedState && storedState.filter) {
+                        elementsToCheck.add(element);
+                    }
+                });
+                
+                if (elementsToCheck.size > 0) {
+                    this.scanSpecificElements(Array.from(elementsToCheck));
+                }
+            });
+            
+            fxConsole.log('📏 ResizeObserver setup complete');
+        } else {
+            fxConsole.log('⚠️ ResizeObserver not supported');
         }
     }
 
@@ -123,6 +192,12 @@ class FxFilter {
             this.elements.delete(element);
             fxConsole.log('🧹 Cleaned up removed element from tracking');
         }
+        
+        // Remove from pending and stop observing
+        this.pendingElements.delete(element);
+        if (this.resizeObserver) {
+            this.resizeObserver.unobserve(element);
+        }
     }
 
     static scanElements() {
@@ -143,6 +218,44 @@ class FxFilter {
             const storedState = this.elements.get(element);
 
             if (fxFilter) {
+                // Check if element has zero dimensions using multiple methods
+                const rect = element.getBoundingClientRect();
+                const clientWidth = element.clientWidth || 0;
+                const clientHeight = element.clientHeight || 0;
+                const offsetWidth = element.offsetWidth || 0;
+                const offsetHeight = element.offsetHeight || 0;
+                
+                // Element has zero dimensions if any of these are true
+                const hasZeroDimensions = (
+                    rect.width <= 0 || rect.height <= 0 ||
+                    (clientWidth <= 0 && offsetWidth <= 0) ||
+                    (clientHeight <= 0 && offsetHeight <= 0)
+                );
+                
+                if (hasZeroDimensions) {
+                    // Element has zero dimensions, add to pending and observe for resize
+                    fxConsole.log('⏳ Element has zero dimensions, adding to pending list:', element, {
+                        rect: { width: rect.width, height: rect.height },
+                        client: { width: clientWidth, height: clientHeight },
+                        offset: { width: offsetWidth, height: offsetHeight }
+                    });
+                    this.pendingElements.add(element);
+                    
+                    // Start observing this element for size changes
+                    if (this.resizeObserver) {
+                        this.resizeObserver.observe(element);
+                    }
+                    
+                    // Skip processing for now
+                    return;
+                }
+                
+                // Remove from pending if it was there (element now has dimensions)
+                if (this.pendingElements.has(element)) {
+                    this.pendingElements.delete(element);
+                    fxConsole.log('✅ Element now has dimensions, processing:', element);
+                }
+
                 let parsedFilter;
                 if (storedState && storedState.filter === fxFilter && storedState.parsedFilter) {
                     parsedFilter = storedState.parsedFilter;
@@ -162,6 +275,11 @@ class FxFilter {
                         parsedFilter: parsedFilter,
                         filterId
                     });
+                    
+                    // Start observing for size changes if supported
+                    if (this.resizeObserver) {
+                        this.resizeObserver.observe(element);
+                    }
                 } else if (storedState.filter !== fxFilter || this.stylesChanged(storedState.trackedStyles, currentStyles)) {
                     // Only update SVG filter and CSS filter reference, not container
                     this.updateFxFilter(element, fxFilter, parsedFilter, storedState.filterId);
@@ -178,7 +296,15 @@ class FxFilter {
                 if (storedState && storedState.hasContainer) {
                     this.removeFxContainer(element);
                     this.elements.delete(element);
+                    
+                    // Stop observing this element
+                    if (this.resizeObserver) {
+                        this.resizeObserver.unobserve(element);
+                    }
                 }
+                
+                // Remove from pending if it was there
+                this.pendingElements.delete(element);
             }
         });
     }
