@@ -5,6 +5,7 @@ class FxFilter {
     static filters = new Map(); // Registry for custom filters
     static filterOptions = new Map(); // Track filter options including updatesOn
     static running = false;
+    static observer = null; // MutationObserver instance
 
     static add(options) {
         // if options is a list of filters, register each one
@@ -48,22 +49,96 @@ class FxFilter {
         }
 
         if (!this.running) {
-            fxConsole.log('🚀 Starting FxFilter animation loop');
+            fxConsole.log('🚀 Starting FxFilter with MutationObserver');
             this.running = true;
-            this.tick();
+            this.setupMutationObserver();
+            this.scanElements(); // Initial scan for existing elements
         } else {
             fxConsole.log('⚡ FxFilter already running - skipping duplicate initialization');
         }
     }
 
-    static tick() {
-        this.scanElements();
-        requestAnimationFrame(() => this.tick());
+    static setupMutationObserver() {
+        // Create MutationObserver to watch for DOM changes
+        this.observer = new MutationObserver((mutations) => {
+            this.handleMutations(mutations);
+        });
+
+        // Start observing document.body for changes
+        this.observer.observe(document.body, {
+            childList: true,    // Watch for added/removed nodes
+            subtree: true,      // Watch entire subtree 
+            attributes: true,   // Watch for attribute changes
+            attributeFilter: ['style', 'class'] // Only watch style and class changes
+        });
+
+        fxConsole.log('👁️ MutationObserver setup complete');
+    }
+
+    static handleMutations(mutations) {
+        const elementsToCheck = new Set();
+
+        mutations.forEach(mutation => {
+            if (mutation.type === 'childList') {
+                // Handle added nodes
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        // Add the element itself
+                        elementsToCheck.add(node);
+                        // Add all descendants that could have --fx-filter
+                        node.querySelectorAll('*:not(.fx-container):not(svg)').forEach(el => {
+                            elementsToCheck.add(el);
+                        });
+                    }
+                });
+
+                // Handle removed nodes - clean up if they had filters
+                mutation.removedNodes.forEach(node => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        this.cleanupRemovedElement(node);
+                        // Clean up descendants too
+                        node.querySelectorAll('*').forEach(el => {
+                            this.cleanupRemovedElement(el);
+                        });
+                    }
+                });
+            } else if (mutation.type === 'attributes') {
+                // Handle attribute changes (style, class) that might affect --fx-filter
+                if (mutation.target.nodeType === Node.ELEMENT_NODE) {
+                    elementsToCheck.add(mutation.target);
+                }
+            }
+        });
+
+        // Process all affected elements
+        if (elementsToCheck.size > 0) {
+            this.scanSpecificElements(Array.from(elementsToCheck));
+        }
+    }
+
+    static cleanupRemovedElement(element) {
+        const storedState = this.elements.get(element);
+        if (storedState && storedState.hasContainer) {
+            // Element was removed from DOM, clean up our tracking
+            this.elements.delete(element);
+            fxConsole.log('🧹 Cleaned up removed element from tracking');
+        }
     }
 
     static scanElements() {
-        // Scan only elements that could have --fx-filter (not our generated containers)
-        document.querySelectorAll('*:not(.fx-container):not(svg)').forEach(element => {
+        // Scan all elements in the document (used for initial scan)
+        const elements = document.querySelectorAll('*:not(.fx-container):not(svg)');
+        this.scanSpecificElements(Array.from(elements));
+    }
+
+    static scanSpecificElements(elements) {
+        // Scan only the provided elements for --fx-filter updates
+        elements.forEach(element => {
+            // Skip our generated containers and SVG elements
+            if (element.classList.contains('fx-container') || element.tagName.toLowerCase() === 'svg') {
+                return;
+            }
+
             const fxFilter = this.getFxFilterValue(element);
             const storedState = this.elements.get(element);
 
